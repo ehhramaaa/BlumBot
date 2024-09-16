@@ -84,24 +84,25 @@ func launchBot(account *Account, gamePoints int, walletAddress string) {
 		for _, mainTask := range taskList {
 			if tasks, exits := mainTask["tasks"].([]interface{}); exits {
 				for _, task := range tasks {
-					taskMap := task.(map[string]interface{})
-					if taskMap["status"].(string) == "NOT_STARTED" {
-						for _, subTask := range taskMap["subTasks"].([]interface{}) {
-							subTaskMap := subTask.(map[string]interface{})
-							if subTaskMap["status"].(string) != "FINISHED" {
-								startTask := client.startTask(subTaskMap["id"].(string), subTaskMap["title"].(string))
-								if status, exits := startTask["status"].(string); exits && status == "STARTED" {
-									helper.PrettyLog("success", fmt.Sprintf("| %s | Start Task: %v Successfully | Sleep 5s Before Claim Task...", client.username, startTask["title"].(string)))
-								}
+					if taskMap, exits := task.(map[string]interface{}); exits && taskMap != nil {
+						if taskMap["status"].(string) == "NOT_STARTED" {
+							for _, subTask := range taskMap["subTasks"].([]interface{}) {
+								subTaskMap := subTask.(map[string]interface{})
+								if subTaskMap["status"].(string) != "FINISHED" {
+									startTask := client.startTask(subTaskMap["id"].(string), subTaskMap["title"].(string))
+									if status, exits := startTask["status"].(string); exits && status == "STARTED" {
+										helper.PrettyLog("success", fmt.Sprintf("| %s | Start Task: %v Successfully | Sleep 5s Before Claim Task...", client.username, startTask["title"].(string)))
+									}
 
-								time.Sleep(5 * time.Second)
+									time.Sleep(5 * time.Second)
 
-								claimTask := client.claimTask(subTaskMap["id"].(string), subTaskMap["title"].(string))
-								if claimTask != nil {
-									if status, exits := claimTask["status"].(string); exits && status == "FINISHED" {
-										helper.PrettyLog("success", fmt.Sprintf("| %s | Claim Task: %v Successfully | Reward: | %s | Sleep 5s Before Next Task...", client.username, claimTask["reward"].(string), claimTask["title"].(string)))
-									} else {
-										helper.PrettyLog("error", fmt.Sprintf("| %s | Claim Task: %v Failed | Sleep 5s Before Next Task...", client.username, claimTask["title"].(string)))
+									claimTask := client.claimTask(subTaskMap["id"].(string), subTaskMap["title"].(string))
+									if claimTask != nil {
+										if status, exits := claimTask["status"].(string); exits && status == "FINISHED" {
+											helper.PrettyLog("success", fmt.Sprintf("| %s | Claim Task: %v Successfully | Reward: | %s | Sleep 5s Before Next Task...", client.username, claimTask["reward"].(string), claimTask["title"].(string)))
+										} else {
+											helper.PrettyLog("error", fmt.Sprintf("| %s | Claim Task: %v Failed | Sleep 5s Before Next Task...", client.username, claimTask["title"].(string)))
+										}
 									}
 								}
 							}
@@ -110,31 +111,31 @@ func launchBot(account *Account, gamePoints int, walletAddress string) {
 				}
 			}
 
-			// if subSections, exits := mainTask["subSections"].([]interface{}); exits {
-			// 	for _, sections := range subSections {
-			// 		sectionsMap := sections.(map[string]interface{})
-			// 		for _, task := range sectionsMap["tasks"].([]interface{}) {
-			// 			taskMap := task.(map[string]interface{})
-			// 			if taskMap["status"].(string) != "FINISHED" {
-			// 				startTask := client.startTask(taskMap["id"].(string), taskMap["title"].(string))
-			// 				if status, exits := startTask["status"].(string); exits && status == "STARTED" {
-			// 					helper.PrettyLog("success", fmt.Sprintf("| %s | Start Task: %v Successfully | Sleep 5s Before Claim Task...", client.username, startTask["title"].(string)))
-			// 				}
+			if subSections, exits := mainTask["subSections"].([]interface{}); exits {
+				for _, sections := range subSections {
+					sectionsMap := sections.(map[string]interface{})
+					for _, task := range sectionsMap["tasks"].([]interface{}) {
+						taskMap := task.(map[string]interface{})
+						if taskMap["status"].(string) != "FINISHED" {
+							startTask := client.startTask(taskMap["id"].(string), taskMap["title"].(string))
+							if status, exits := startTask["status"].(string); exits && status == "STARTED" {
+								helper.PrettyLog("success", fmt.Sprintf("| %s | Start Task: %v Successfully | Sleep 5s Before Claim Task...", client.username, startTask["title"].(string)))
+							}
 
-			// 				time.Sleep(5 * time.Second)
+							time.Sleep(5 * time.Second)
 
-			// 				claimTask := client.claimTask(taskMap["id"].(string), taskMap["title"].(string))
-			// 				if claimTask != nil {
-			// 					if status, exits := claimTask["status"].(string); exits && status == "FINISHED" {
-			// 						helper.PrettyLog("success", fmt.Sprintf("| %s | Claim Task: %v Successfully | Reward: | %s | Sleep 5s Before Next Task...", client.username, claimTask["reward"].(string), claimTask["title"].(string)))
-			// 					} else {
-			// 						helper.PrettyLog("error", fmt.Sprintf("| %s | Claim Task: %v Failed | Sleep 5s Before Next Task...", client.username, claimTask["title"].(string)))
-			// 					}
-			// 				}
-			// 			}
-			// 		}
-			// 	}
-			// }
+							claimTask := client.claimTask(taskMap["id"].(string), taskMap["title"].(string))
+							if claimTask != nil {
+								if status, exits := claimTask["status"].(string); exits && status == "FINISHED" {
+									helper.PrettyLog("success", fmt.Sprintf("| %s | Claim Task: %v Successfully | Reward: | %s | Sleep 5s Before Next Task...", client.username, claimTask["reward"].(string), claimTask["title"].(string)))
+								} else {
+									helper.PrettyLog("error", fmt.Sprintf("| %s | Claim Task: %v Failed | Sleep 5s Before Next Task...", client.username, claimTask["title"].(string)))
+								}
+							}
+						}
+					}
+				}
+			}
 		}
 	}
 
