@@ -99,12 +99,14 @@ func launchBot(account *Account, gamePoints int, walletAddress string) {
 									claimTask := client.claimTask(subTaskMap["id"].(string), subTaskMap["title"].(string))
 									if claimTask != nil {
 										if status, exits := claimTask["status"].(string); exits && status == "FINISHED" {
-											helper.PrettyLog("success", fmt.Sprintf("| %s | Claim Task: %v Successfully | Reward: | %s | Sleep 5s Before Next Task...", client.username, claimTask["reward"].(string), claimTask["title"].(string)))
+											helper.PrettyLog("success", fmt.Sprintf("| %s | Claim Task: %v Successfully | Reward: | %s | Sleep 15s Before Next Task...", client.username, claimTask["reward"].(string), claimTask["title"].(string)))
 										} else {
-											helper.PrettyLog("error", fmt.Sprintf("| %s | Claim Task: %v Failed | Sleep 5s Before Next Task...", client.username, claimTask["title"].(string)))
+											helper.PrettyLog("error", fmt.Sprintf("| %s | Claim Task: %v Failed | Sleep 15s Before Next Task...", client.username, claimTask["title"].(string)))
 										}
 									}
 								}
+
+								time.Sleep(15 * time.Second)
 							}
 						}
 					}
@@ -127,12 +129,13 @@ func launchBot(account *Account, gamePoints int, walletAddress string) {
 							claimTask := client.claimTask(taskMap["id"].(string), taskMap["title"].(string))
 							if claimTask != nil {
 								if status, exits := claimTask["status"].(string); exits && status == "FINISHED" {
-									helper.PrettyLog("success", fmt.Sprintf("| %s | Claim Task: %v Successfully | Reward: | %s | Sleep 5s Before Next Task...", client.username, claimTask["reward"].(string), claimTask["title"].(string)))
+									helper.PrettyLog("success", fmt.Sprintf("| %s | Claim Task: %v Successfully | Reward: | %s | Sleep 15s Before Next Task...", client.username, claimTask["reward"].(string), claimTask["title"].(string)))
 								} else {
-									helper.PrettyLog("error", fmt.Sprintf("| %s | Claim Task: %v Failed | Sleep 5s Before Next Task...", client.username, claimTask["title"].(string)))
+									helper.PrettyLog("error", fmt.Sprintf("| %s | Claim Task: %v Failed | Sleep 15s Before Next Task...", client.username, claimTask["title"].(string)))
 								}
 							}
 						}
+						time.Sleep(15 * time.Second)
 					}
 				}
 			}
@@ -148,8 +151,10 @@ func launchBot(account *Account, gamePoints int, walletAddress string) {
 
 			playGame := client.claimGame(gameId, gamePoints)
 			if playGame == "OK" {
-				helper.PrettyLog("success", fmt.Sprintf("| %s | Claim Game Successfully...", client.username))
+				helper.PrettyLog("success", fmt.Sprintf("| %s | Claim Game Successfully | Sleep 15s Before Next Game...", client.username))
 			}
 		}
+
+		time.Sleep(15 * time.Second)
 	}
 }
