@@ -1,6 +1,6 @@
 
 build:
-	docker build -t blumbot .
+	docker build -t majorbot .
 
 up:
 	docker-compose up -d
@@ -9,6 +9,6 @@ down:
 	docker-compose down
 
 delete:
-	docker rmi blumbot --force
+	docker rmi majorbot --force
 
 .PHONY: build up down delete

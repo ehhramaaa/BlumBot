@@ -1,17 +1,17 @@
 package core
 
 import (
-	"BlumBot/helper"
 	"fmt"
 	"net/http"
+
 )
 
-func setHeader(http *http.Request, authToken string) {
+func (c *Client) setHeader(http *http.Request) {
 
 	userAgent, os := generateRandomUserAgent()
 	if userAgent == "" || os == "" {
-		helper.PrettyLog("error", "Failed Generate Random User Agent")
-		return
+		userAgent = "Mozilla/5.0 (Linux; Android 5.0.2; SAMSUNG SM-A500FU Build/LRX22G) AppleWebKit/537.36 (KHTML, like Gecko) SamsungBrowser/3.2 Chrome/38.0.2125.102 Mobile Safari/537.36"
+		os = "Android"
 	}
 
 	header := map[string]string{
@@ -29,8 +29,8 @@ func setHeader(http *http.Request, authToken string) {
 		"User-Agent":         userAgent,
 	}
 
-	if authToken != "" {
-		header["authorization"] = authToken
+	if c.accessToken != "" {
+		header["authorization"] = c.accessToken
 	}
 
 	for key, value := range header {

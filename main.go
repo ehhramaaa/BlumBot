@@ -2,32 +2,23 @@ package main
 
 import (
 	"BlumBot/core"
-	"fmt"
+	"BlumBot/tools"
 
 	"github.com/gookit/config/v2"
 	"github.com/gookit/config/v2/yaml"
 )
 
 func main() {
-	fmt.Println(`
- /$$$$$$$  /$$                         /$$$$$$$              /$$    
-| $$__  $$| $$                        | $$__  $$            | $$    
-| $$  \ $$| $$ /$$   /$$ /$$$$$$/$$$$ | $$  \ $$  /$$$$$$  /$$$$$$  
-| $$$$$$$ | $$| $$  | $$| $$_  $$_  $$| $$$$$$$  /$$__  $$|_  $$_/  
-| $$__  $$| $$| $$  | $$| $$ \ $$ \ $$| $$__  $$| $$  \ $$  | $$    
-| $$  \ $$| $$| $$  | $$| $$ | $$ | $$| $$  \ $$| $$  | $$  | $$ /$$
-| $$$$$$$/| $$|  $$$$$$/| $$ | $$ | $$| $$$$$$$/|  $$$$$$/  |  $$$$/
-|_______/ |__/ \______/ |__/ |__/ |__/|_______/  \______/    \___/  
-`)
-	fmt.Println(`ρσωєяє∂ ву : нσℓу¢αη`)
 
 	// add driver for support yaml content
 	config.AddDriver(yaml.Driver)
 
-	err := config.LoadFiles("config.yml")
+	err := config.LoadFiles("configs/config.yml")
 	if err != nil {
 		panic(err)
 	}
 
-	core.ProcessBot(config.Default())
+	tools.PrintLogo()
+
+	core.LaunchBot()
 }

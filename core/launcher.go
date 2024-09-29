@@ -1,9 +1,8 @@
 package core
 
 import (
-	"BlumBot/helper"
+	"BlumBot/tools"
 	"encoding/json"
-	"flag"
 	"fmt"
 	"net/url"
 	"sync"
@@ -12,207 +11,139 @@ import (
 	"github.com/gookit/config/v2"
 )
 
-type Account struct {
-	QueryId        string
-	UserId         int
-	Username       string
-	FirstName      string
-	LastName       string
-	AuthDate       string
-	Hash           string
-	AllowWriteToPm bool
-	LanguageCode   string
-	QueryData      string
-}
-
-func getAccountFromQuery(account *Account) {
-	// Parsing Query To Get Username
-	value, err := url.ParseQuery(account.QueryData)
+func (account *Account) parsingQueryData() {
+	value, err := url.ParseQuery(account.queryData)
 	if err != nil {
-		helper.PrettyLog("error", fmt.Sprintf("Failed to parse query: %v", err.Error()))
-		return
+		tools.Logger("error", fmt.Sprintf("Failed to parse query data: %s", err))
 	}
 
 	if len(value.Get("query_id")) > 0 {
-		account.QueryId = value.Get("query_id")
+		account.queryId = value.Get("query_id")
 	}
 
 	if len(value.Get("auth_date")) > 0 {
-		account.AuthDate = value.Get("auth_date")
+		account.authDate = value.Get("auth_date")
 	}
 
 	if len(value.Get("hash")) > 0 {
-		account.Hash = value.Get("hash")
+		account.hash = value.Get("hash")
 	}
 
 	userParam := value.Get("user")
 
-	// Mendekode string JSON
 	var userData map[string]interface{}
 	err = json.Unmarshal([]byte(userParam), &userData)
 	if err != nil {
-		panic(err)
+		tools.Logger("error", fmt.Sprintf("Failed to parse user data: %s", err))
 	}
 
-	// Mengambil ID dan username dari hasil decode
-	userIDFloat, ok := userData["id"].(float64)
+	userId, ok := userData["id"].(float64)
 	if !ok {
-		helper.PrettyLog("error", "Failed to convert ID to float64")
-		return
+		tools.Logger("error", "Failed to convert ID to float64")
 	}
 
-	account.UserId = int(userIDFloat)
+	account.userId = int(userId)
 
-	// Ambil username
 	username, ok := userData["username"].(string)
 	if !ok {
-		helper.PrettyLog("error", "Failed to get username")
+		tools.Logger("error", "Failed to get username from query")
 		return
 	}
-	account.Username = username
+
+	account.username = username
 
 	// Ambil first name
 	firstName, ok := userData["first_name"].(string)
 	if !ok {
-		helper.PrettyLog("error", "Failed to get first_name")
-		return
+		tools.Logger("error", "Failed to get first name from query")
 	}
-	account.FirstName = firstName
+
+	account.firstName = firstName
 
 	// Ambil first name
 	lastName, ok := userData["last_name"].(string)
 	if !ok {
-		helper.PrettyLog("error", "Failed to get last_name")
-		return
+		tools.Logger("error", "Failed to get last name from query")
 	}
-	account.LastName = lastName
+	account.lastName = lastName
 
 	// Ambil language code
 	languageCode, ok := userData["language_code"].(string)
 	if !ok {
-		helper.PrettyLog("error", "Failed to get language_code")
-		return
+		tools.Logger("error", "Failed to get language code from query")
 	}
-	account.LanguageCode = languageCode
+	account.languageCode = languageCode
 
 	// Ambil allowWriteToPm
 	allowWriteToPm, ok := userData["allows_write_to_pm"].(bool)
 	if !ok {
-		helper.PrettyLog("error", "Failed to get allows_write_to_pm")
-		return
+		tools.Logger("error", "Failed to get allows write to pm from query")
 	}
-	account.AllowWriteToPm = allowWriteToPm
+
+	account.allowWriteToPm = allowWriteToPm
 }
 
-func ProcessBot(config *config.Config) {
-	queryPath := "./query.txt"
+func LaunchBot() {
+	queryPath := "configs/query.txt"
+	proxyPath := "configs/proxy.txt"
 	maxThread := config.Int("MAX_THREAD")
-	gamePoints := helper.RandomNumber(config.Int("GAME_POINTS.MIN"), config.Int("GAME_POINTS.MAX"))
+	isUseProxy := config.Bool("USE_PROXY")
 
-	queryData := helper.ReadFileTxt(queryPath)
-	if queryData == nil {
-		helper.PrettyLog("error", "Query data not found")
+	queryData, err := tools.ReadFileTxt(queryPath)
+	if err != nil {
+		tools.Logger("error", fmt.Sprintf("Query Data Not Found: %s", err))
 		return
 	}
 
-	helper.PrettyLog("info", fmt.Sprintf("%v Query Data Detected", len(queryData)))
-
-	var choice int
-	flagArg := flag.Int("c", 0, "Input Choice With Flag -c, 1 = Auto Completing All Task (Unlimited Loop), 2 = Connect Wallet (Development Stage)")
-
-	// Parse flag dari command line
-	flag.Parse()
-
-	if *flagArg > 2 {
-		helper.PrettyLog("error", "Invalid Flag Choice")
-	} else if *flagArg != 0 {
-		choice = *flagArg
-	}
-
-	if choice == 0 {
-		helper.PrettyLog("1", "Auto Completing All Task (Unlimited Loop)")
-		helper.PrettyLog("2", "Connect Wallet (Development Stage)")
-
-		helper.PrettyLog("input", "Select Your Choice: ")
-
-		_, err := fmt.Scan(&choice)
-		if err != nil {
-			helper.PrettyLog("error", "Selection Invalid")
-			return
-		}
-	}
-
-	helper.PrettyLog("info", "Start Processing Account...")
-
-	time.Sleep(3 * time.Second)
-
-	var walletAddress []string
-
-	if choice == 2 {
-		helper.PrettyLog("error", "Feature Still Development Stage")
-		return
-		walletAddress = helper.ReadFileTxt("./wallet_address.txt")
-		if walletAddress == nil {
-			helper.PrettyLog("error", "Wallet Address Data Not Found")
-			return
-		}
-
-		helper.PrettyLog("info", fmt.Sprintf("%v Wallet Address Detected", len(walletAddress)))
-
-		if len(walletAddress) != len(queryData) {
-			helper.PrettyLog("error", fmt.Sprintf("Wallet Address Count (%v) Must Match With Query Data Count (%v)", len(walletAddress), len(queryData)))
-			return
-		}
-	}
+	tools.Logger("info", fmt.Sprintf("%v Query Data Detected", len(queryData)))
 
 	var wg sync.WaitGroup
+	var semaphore chan struct{}
+	var proxyList, walletList []string
 
-	// Membuat semaphore dengan buffered channel
-	semaphore := make(chan struct{}, maxThread)
+	if isUseProxy {
+		proxyList, err = tools.ReadFileTxt(proxyPath)
+		if err != nil {
+			tools.Logger("error", fmt.Sprintf("Proxy Data Not Found: %s", err))
+		}
 
-	for j, query := range queryData {
-		wg.Add(1)
-
-		// Goroutine untuk setiap job
-		go func(index int, query string) {
-			defer wg.Done()
-
-			// Mengambil token dari semaphore sebelum menjalankan job
-			semaphore <- struct{}{}
-
-			account := &Account{
-				QueryData: query,
-			}
-
-			getAccountFromQuery(account)
-
-			helper.PrettyLog("info", fmt.Sprintf("| %s | Started Bot...", account.Username))
-
-			switch choice {
-			case 1:
-				launchBot(account, gamePoints, "")
-			case 2:
-				launchBot(account, gamePoints, walletAddress[j])
-				helper.PrettyLog("info", fmt.Sprintf("%s | Launch Bot Finished", account.Username))
-			}
-
-			<-semaphore
-
-			if choice == 1 {
-				randomSleep := helper.RandomNumber(config.Int("RANDOM_SLEEP.MIN"), config.Int("RANDOM_SLEEP.MAX"))
-
-				helper.PrettyLog("info", fmt.Sprintf("%s | Launch Bot Finished, Sleeping for %v seconds..", account.Username, randomSleep))
-
-				time.Sleep(time.Duration(randomSleep) * time.Second)
-			}
-		}(j, query)
+		tools.Logger("info", fmt.Sprintf("%v Proxy Detected", len(proxyList)))
 	}
 
-	// Tunggu sampai semua worker selesai memproses pekerjaan
-	wg.Wait()
+	totalPointsChan := make(chan int, len(queryData))
 
-	// Program utama berjalan terus menerus
-	if choice == 1 {
-		select {} // block forever
+	if maxThread > len(queryData) {
+		semaphore = make(chan struct{}, len(queryData))
+	} else {
+		semaphore = make(chan struct{}, maxThread)
+	}
+
+	for {
+		for index, query := range queryData {
+			wg.Add(1)
+			account := &Account{
+				queryData: query,
+			}
+
+			account.parsingQueryData()
+
+			go account.worker(&wg, &semaphore, &totalPointsChan, index, query, proxyList, walletList)
+		}
+		wg.Wait()
+		close(totalPointsChan)
+
+		var totalPoints int
+
+		for points := range totalPointsChan {
+			totalPoints += points
+		}
+
+		tools.Logger("success", fmt.Sprintf("Total Points All Account: %v", totalPoints))
+
+		randomSleep := tools.RandomNumber(config.Int("RANDOM_SLEEP.MIN"), config.Int("RANDOM_SLEEP.MAX"))
+
+		tools.Logger("info", fmt.Sprintf("Launch Bot Finished | Sleep %vs Before Next Lap...", randomSleep))
+
+		time.Sleep(time.Duration(randomSleep) * time.Second)
 	}
 }
