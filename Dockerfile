@@ -12,7 +12,7 @@ RUN go mod download
 RUN go mod verify
 
 # Build the Go binary with the specified flags
-RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-w -s" -o /app/MajorBot .
+RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-w -s" -o /app/BlumBot .
 
 #####################
 # FINAL IMAGE #
@@ -24,13 +24,13 @@ FROM alpine:3.16
 WORKDIR /app
 
 # Copy the binary from the builder stage
-COPY --from=builder /app/MajorBot /app/
+COPY --from=builder /app/BlumBot /app/
 
 # Copy the configs directory from the build context
 COPY . /app/
 
 # Ensure the binary has execution permissions
-RUN chmod +x /app/MajorBot
+RUN chmod +x /app/BlumBot
 
 # Set the entrypoint for the container
-CMD ["./MajorBot", "-c", "1"]
+CMD ["./BlumBot"]

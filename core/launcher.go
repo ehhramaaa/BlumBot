@@ -84,6 +84,7 @@ func (account *Account) parsingQueryData() {
 }
 
 func LaunchBot() {
+	defer tools.HandleRecover()
 	queryPath := "configs/query.txt"
 	proxyPath := "configs/proxy.txt"
 	maxThread := config.Int("MAX_THREAD")

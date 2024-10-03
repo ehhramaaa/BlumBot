@@ -31,7 +31,7 @@ func (account *Account) worker(wg *sync.WaitGroup, semaphore *chan struct{}, tot
 		account: *account,
 		proxy:   proxy,
 		httpClient: &http.Client{
-			Timeout: 15 * time.Second,
+			Timeout: 30 * time.Second,
 		},
 	}
 
@@ -61,6 +61,7 @@ func (account *Account) worker(wg *sync.WaitGroup, semaphore *chan struct{}, tot
 }
 
 func (c *Client) autoCompleteTask() int {
+	defer tools.HandleRecover()
 
 	var points int
 
@@ -80,7 +81,9 @@ func (c *Client) autoCompleteTask() int {
 		tools.Logger("error", fmt.Sprintf("| %s | Failed to daily check in: %v", c.account.username, err))
 	}
 
-	fmt.Println(isDailyCheckIn)
+	if isDailyCheckIn == "OK" {
+		tools.Logger("success", fmt.Sprintf("| %s | Daily Check in Successfully...", c.account.username))
+	}
 
 	walletAddress, err := c.getWalletInfo()
 	if err != nil {
@@ -164,16 +167,60 @@ func (c *Client) autoCompleteTask() int {
 		if len(taskList) > 0 {
 			for _, mainTask := range taskList {
 				mainTaskMap := mainTask.(map[string]interface{})
-				if tasks, exits := mainTaskMap["tasks"].([]interface{}); exits {
-					for _, task := range tasks {
-						if taskMap, exits := task.(map[string]interface{}); exits && taskMap != nil {
-							if taskMap["status"].(string) == "NOT_STARTED" {
-								for _, subTask := range taskMap["subTasks"].([]interface{}) {
-									subTaskMap := subTask.(map[string]interface{})
-									if subTaskMap["status"].(string) != "FINISHED" {
-										taskTitle := subTaskMap["title"].(string)
+				if mainTaskMap["tasks"] != nil {
+					if tasks, exits := mainTaskMap["tasks"].([]interface{}); exits {
+						for _, task := range tasks {
+							if taskMap, exits := task.(map[string]interface{}); exits && taskMap != nil {
+								if taskMap["status"].(string) == "NOT_STARTED" {
+									if taskMap["subTasks"] != nil {
+										for _, subTask := range taskMap["subTasks"].([]interface{}) {
+											subTaskMap := subTask.(map[string]interface{})
+											if subTaskMap["status"].(string) != "FINISHED" {
+												taskTitle := subTaskMap["title"].(string)
 
-										startTask, err := c.startTask(subTaskMap["id"].(string))
+												startTask, err := c.startTask(subTaskMap["id"].(string))
+												if err != nil {
+													tools.Logger("error", fmt.Sprintf("| %s | Failed to start task %s: %v", c.account.username, taskTitle, err))
+												}
+
+												if status, exits := startTask["status"].(string); exits && status == "STARTED" {
+													tools.Logger("success", fmt.Sprintf("| %s | Start Task: %v Successfully | Sleep 5s Before Claim Task...", c.account.username, taskTitle))
+												}
+
+												time.Sleep(5 * time.Second)
+
+												claimTask, err := c.claimTask(subTaskMap["id"].(string))
+												if err != nil {
+													tools.Logger("error", fmt.Sprintf("| %s | Failed to claim task %s: %v", c.account.username, taskTitle, err))
+												}
+
+												if claimTask != nil {
+													if status, exits := claimTask["status"].(string); exits && status == "FINISHED" {
+														tools.Logger("success", fmt.Sprintf("| %s | Claim Task: %v Successfully | Reward: %s | Sleep 5s Before Next Task...", c.account.username, taskTitle, claimTask["reward"].(string)))
+													} else {
+														tools.Logger("error", fmt.Sprintf("| %s | Claim Task: %v Failed | Sleep 5s Before Next Task...", c.account.username, taskTitle))
+													}
+												}
+											}
+											time.Sleep(5 * time.Second)
+										}
+									}
+								}
+							}
+						}
+					}
+				}
+
+				if mainTaskMap["subSections"] != nil {
+					if subSections, exits := mainTaskMap["subSections"].([]interface{}); exits {
+						for _, sections := range subSections {
+							sectionsMap := sections.(map[string]interface{})
+							if sectionsMap["tasks"] != nil {
+								for _, task := range sectionsMap["tasks"].([]interface{}) {
+									taskMap := task.(map[string]interface{})
+									if taskMap["status"].(string) != "FINISHED" {
+										taskTitle := taskMap["title"].(string)
+										startTask, err := c.startTask(taskMap["id"].(string))
 										if err != nil {
 											tools.Logger("error", fmt.Sprintf("| %s | Failed to start task %s: %v", c.account.username, taskTitle, err))
 										}
@@ -184,7 +231,7 @@ func (c *Client) autoCompleteTask() int {
 
 										time.Sleep(5 * time.Second)
 
-										claimTask, err := c.claimTask(subTaskMap["id"].(string))
+										claimTask, err := c.claimTask(taskMap["id"].(string))
 										if err != nil {
 											tools.Logger("error", fmt.Sprintf("| %s | Failed to claim task %s: %v", c.account.username, taskTitle, err))
 										}
@@ -197,46 +244,9 @@ func (c *Client) autoCompleteTask() int {
 											}
 										}
 									}
-
 									time.Sleep(5 * time.Second)
 								}
 							}
-						}
-					}
-				}
-
-				if subSections, exits := mainTaskMap["subSections"].([]interface{}); exits {
-					for _, sections := range subSections {
-						sectionsMap := sections.(map[string]interface{})
-						for _, task := range sectionsMap["tasks"].([]interface{}) {
-							taskMap := task.(map[string]interface{})
-							if taskMap["status"].(string) != "FINISHED" {
-								taskTitle := taskMap["title"].(string)
-								startTask, err := c.startTask(taskMap["id"].(string))
-								if err != nil {
-									tools.Logger("error", fmt.Sprintf("| %s | Failed to start task %s: %v", c.account.username, taskTitle, err))
-								}
-
-								if status, exits := startTask["status"].(string); exits && status == "STARTED" {
-									tools.Logger("success", fmt.Sprintf("| %s | Start Task: %v Successfully | Sleep 5s Before Claim Task...", c.account.username, taskTitle))
-								}
-
-								time.Sleep(5 * time.Second)
-
-								claimTask, err := c.claimTask(taskMap["id"].(string))
-								if err != nil {
-									tools.Logger("error", fmt.Sprintf("| %s | Failed to claim task %s: %v", c.account.username, taskTitle, err))
-								}
-
-								if claimTask != nil {
-									if status, exits := claimTask["status"].(string); exits && status == "FINISHED" {
-										tools.Logger("success", fmt.Sprintf("| %s | Claim Task: %v Successfully | Reward: | %s | Sleep 5s Before Next Task...", c.account.username, taskTitle, claimTask["reward"].(string)))
-									} else {
-										tools.Logger("error", fmt.Sprintf("| %s | Claim Task: %v Failed | Sleep 5s Before Next Task...", c.account.username, taskTitle))
-									}
-								}
-							}
-							time.Sleep(5 * time.Second)
 						}
 					}
 				}

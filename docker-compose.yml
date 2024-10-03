@@ -1,8 +1,8 @@
 version: '3'
 services:
-  bot:
-    container_name: 'MajorBot'
-    image: majorbot
+  blum-bot:
+    container_name: 'BlumBot'
+    image: blumbot
     stop_signal: SIGINT
     restart: on-failure
     deploy:

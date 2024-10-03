@@ -51,7 +51,7 @@ func (c *Client) setProxy() error {
 
 		c.httpClient = &http.Client{
 			Transport: transport,
-			Timeout:   15 * time.Second,
+			Timeout:   30 * time.Second,
 		}
 
 		// Test the proxy connection by making a request
@@ -60,7 +60,7 @@ func (c *Client) setProxy() error {
 			// Fallback to no proxy
 			c.httpClient = &http.Client{
 				Transport: nil,
-				Timeout:   15 * time.Second,
+				Timeout:   30 * time.Second,
 			}
 
 			return fmt.Errorf("error creating test request, fallback to no proxy: %v", err)
@@ -71,7 +71,7 @@ func (c *Client) setProxy() error {
 			// If the proxy request fails or returns error, fallback to no proxy
 			c.httpClient = &http.Client{
 				Transport: nil,
-				Timeout:   15 * time.Second,
+				Timeout:   30 * time.Second,
 			}
 
 			return err
@@ -94,7 +94,7 @@ func (c *Client) setProxy() error {
 			// Fallback to no proxy
 			c.httpClient = &http.Client{
 				Transport: nil,
-				Timeout:   15 * time.Second,
+				Timeout:   30 * time.Second,
 			}
 			return fmt.Errorf("error creating SOCKS5 dialer!")
 		}
@@ -107,7 +107,7 @@ func (c *Client) setProxy() error {
 					// Log the error and fallback to no proxy
 					c.httpClient = &http.Client{
 						Transport: nil,
-						Timeout:   15 * time.Second,
+						Timeout:   30 * time.Second,
 					}
 					return nil, err
 				}
